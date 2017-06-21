@@ -1,63 +1,46 @@
 #include"sokoban.h"
 Sokoban::Sokoban(ifstream & fin){
     char ch;
-    int count;
+    unsigned char a=0,b=0;
+    width=0;
+    for(int i=0;i<7;++i)placeForBoxes[i]=0;
     State start;
-    int height=0;
     for(int i=0;;++i){
 	fin.read(&ch,1);
 	if(fin.eof())break;
-	++count;
 	if(ch=='#')not_a_wall.push_back(false);
-	else not_a_wall.push_back(true);
+	else{
+	    not_a_wall.push_back(true);
+	    }
 	switch(ch){
 		case 'P': start.person=i;break;
-		case 'X': start.placeForBoxes.push_back(i);break;
-		case '@': start.boxes.push_back(i);break;
-		case '\n':--i;++height;break;
+		case 'X': placeForBoxes[b]=i;++b;break;
+		case '@': start.boxes[a]=i;++a;break;
+		case '\n':--i;if(width==0)width=i+1;break;
 		default: break;
 		}
 	}
-    width=count/height;
-    last_states.push_back(start);cout<<2<<endl;
-    cout<<last_states.size()<<'q'<<endl;
-    cout<<width<<endl;
-    for(int i=0;i<last_states[0].boxes.size();++i)cout<<last_states[0].boxes[i]<<"";
-    cout<<3<<endl; 
-    for(int i=0;i<last_states[0].placeForBoxes.size();++i)cout<<last_states[0].placeForBoxes[i]<<"";
-    cout<<endl; 
-    cout<<last_states[0].person<<endl; 
-    for(int i=0;i<not_a_wall.size();++i)cout<<not_a_wall[i]<<"";
-
+    last_states.push_back(start);
 }
-Sokoban::State::State(){
+State::State(){
     person=0;
+    for(int i=0;i<7;++i)boxes[i]=0;
 }
-Sokoban::State::State(const State & ob){
-        for(int i=0;;i<ob.boxes.size())boxes.push_back(ob.boxes[i]);
-   	for(int i=0;;i<ob.placeForBoxes.size())placeForBoxes.push_back(ob.placeForBoxes[i]);
-	for(int i=0;;i<ob.way.size())way.push_back(ob.way[i]);
-    	person=ob.person;
+State& State:: operator = (const State& state){
+        if (this == &state) {
+            return *this;
+        }
+	for(int i=0;i<7;++i)boxes[i]=state.boxes[i];	
+    	person=state.person;
+        return *this;
 }
-bool Sokoban::compare(State ob1,State ob2){
-    int count_boxes;
+bool Sokoban::compare(State state1,State state2){
     bool flag=false;
-    if(ob1.person==ob2.person)return 1;
-    if(ob1.boxes.size()!=ob2.boxes.size())return 0;
-    count_boxes=ob1.boxes.size();
-    for(int i=0;i<count_boxes;++i){
-	for(int j=0;j<count_boxes;++j){
-	    if(ob1.boxes[i]==ob2.boxes[j]){
-		flag=true;
-		break;
-		}
-	    }
-	if(flag)flag=false;
-	else return 0;
-	}
-    for(int i=0;i<count_boxes;++i){
-	for(int j=0;j<count_boxes;++j){
-	    if(ob1.placeForBoxes[i]==ob2.placeForBoxes[j]){
+    if(state1.person==state2.person)return 1;
+    else return 0;
+    for(int i=0;i<7;++i){
+	for(int j=0;j<7;++j){
+	    if(state1.boxes[i]==state2.boxes[j]){
 		flag=true;
 		break;
 		}
@@ -67,24 +50,132 @@ bool Sokoban::compare(State ob1,State ob2){
 	}
     return 1;
 }
-/*Sokoban::int check_cell(int course,State state){
-    int cell1=1,cell2=1;
-    if(course==1){
-	if(!not_a_wall[state.person-width])cell1=0;
-	else{
-	    for(int i=0;i<state.boxes.size();++i){
-	    	if((state.person-width)==state.boxes[i])cell1=2;
-	    	}
+int Sokoban::check_cell(int course,State state){
+    int temp,cell1=1,cell2=1;
+    switch(course){
+	case 1:temp=-width;
+	case 2:temp=width;
+	case 3:temp=-1;
+	case 4:temp=1;
+	}
+    if(!not_a_wall[state.person+temp])cell1=0;
+    else{
+	for(int i=0;i<7;++i){
+	    if((state.person+temp)==state.boxes[i])cell1=2;
 	    }
-        if(!not_a_wall[state.person-2*width])cell2=0;
+	}
+    if(cell1!=0){
+        if(!not_a_wall[state.person+2*temp])cell2=0;
 	else{
 	    cell2=1;
-	    for(int i=0;i<state.boxes.size();++i){
-	    	if((state.person-2*width)==state.boxes[i])cell2=2;
+	    for(int i=0;i<7;++i){
+	    	if((state.person+2*temp)==state.boxes[i])cell2=2;
 	    	}
 	    }
-	if(cell1==1)return 1;
-	if(cell1==2 && cell2==1)return 2;
-	if(cell1==0 || (cell1==2 && cell2==2))return 0;
-        }
-}*/
+	}
+    if(cell1==1)return 1;
+    if(cell1==2 && cell2==1)return 2;
+    if(cell1==0 || (cell1==2 && cell2==2))return 0;
+}
+bool Sokoban::check_finish(State win){
+    bool flag=false;
+    for(int i=0;i<7;++i){
+	for(int j=0;j<7;++j){
+	    if(win.boxes[i]==placeForBoxes[j]){
+		flag=true;
+		break;
+		}
+	    }
+	if(flag)flag=false;
+	else return 0;
+	}
+    return 1;   
+}
+bool Sokoban::push_box(int course,State state){
+    int temp;
+    switch(course){
+	case 1:temp=-width;
+	case 2:temp=width;
+	case 3:temp=-1;
+	case 4:temp=1;
+	}
+    state.person+=temp;
+    for(int i=0;i<7;++i){
+	if(state.person==state.boxes[i]){
+	    state.boxes[i]+=temp;
+	    break;
+	    }
+	}
+    return check_finish(state);
+
+}
+int Sokoban::create_state(int course,State state){
+    if(check_cell(course,state)==0)return 0;
+    if(check_cell(course,state)==1){
+	switch(course){
+	    case 1:state.person-=width;break;
+	    case 2:state.person+=width;break;
+	    case 3:state.person-=1;break;
+	    case 4:state.person+=1;break;		
+	    }
+	return 1;
+	}
+    if(check_cell(course,state)==2){
+	if(push_box(course,state))return 2;
+	else return 1;
+	}
+}
+State Sokoban::find_way(){
+    State ob;
+    int temp;
+    while(true){
+    	for(int i=0;i<last_states.size();++i){
+	    for(int j=1;j<5;++j){
+		ob=last_states[i];
+		temp=create_state(j,ob);
+		if(temp==1){
+		    if(ways.find(ob)==ways.end())ways[ob]=last_states[i];
+		    cur_states.push_back(ob);
+		    }
+		if(temp==2){
+		    ways[ob]=last_states[i];
+		    return ob;
+		    }
+		}
+	    }
+	last_states=cur_states;
+        cur_states.clear();
+	}
+}
+void Sokoban::print(State state){
+    char str[not_a_wall.size()];
+    for(int i=0;i<not_a_wall.size();++i){
+    	if(!not_a_wall[i])str[i]='#';
+	else str[i]=' ';
+    	}
+    for(int i=0;i<7;++i){
+	str[placeForBoxes[i]]='X';
+	}
+    for(int i=0;i<7;++i){
+	str[state.boxes[i]]='@';
+	}
+    str[state.person]='P';
+    for(int i=0;i<not_a_wall.size();++i){
+	cout<<str[i];
+	if((i+1)%width==0)cout<<endl;
+	}
+}
+void Sokoban::work(){
+    State temp;
+    temp=find_way();
+    while(true){
+	win_way.push(temp);
+	if(ways.find(temp)!=ways.end())temp=ways[temp];
+	else break;
+	}
+    while(win_way.size()!=0){
+	print(win_way.top());
+	win_way.pop();
+	sleep(2);
+	}
+}

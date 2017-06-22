@@ -2,16 +2,15 @@
 Sokoban::Sokoban(ifstream & fin){
     char ch;
     unsigned char a=0,b=0;
+    start.person=0;
+    for(int i=0;i<7;++i)start.boxes[i]=0;
     width=0;
     for(int i=0;i<7;++i)placeForBoxes[i]=0;
-    State start;
     for(int i=0;;++i){
 	fin.read(&ch,1);
 	if(fin.eof())break;
 	if(ch=='#')not_a_wall.push_back(false);
-	else{
-	    not_a_wall.push_back(true);
-	    }
+	else if(ch!='\n')not_a_wall.push_back(true);
 	switch(ch){
 		case 'P': start.person=i;break;
 		case 'X': placeForBoxes[b]=i;++b;break;
@@ -26,6 +25,13 @@ State::State(){
     person=0;
     for(int i=0;i<7;++i)boxes[i]=0;
 }
+bool operator ==(State state1,State state2){
+    if(state1.person!=state2.person)return 0;
+    for(int i=0;i<7;++i){
+	if(state1.boxes[i]!=state2.boxes[i])return 0;
+	}
+    return 1;
+}
 State& State:: operator = (const State& state){
         if (this == &state) {
             return *this;
@@ -34,29 +40,20 @@ State& State:: operator = (const State& state){
     	person=state.person;
         return *this;
 }
-bool Sokoban::compare(State state1,State state2){
-    bool flag=false;
-    if(state1.person==state2.person)return 1;
-    else return 0;
+bool operator < (State  st1,State st2){
     for(int i=0;i<7;++i){
-	for(int j=0;j<7;++j){
-	    if(state1.boxes[i]==state2.boxes[j]){
-		flag=true;
-		break;
-		}
-	    }
-	if(flag)flag=false;
-	else return 0;
+ 	if(st1.boxes[i]>=st2.boxes[i])return false;
 	}
-    return 1;
+    if(st1.person>=st2.person)return false;
+    return true;
 }
 int Sokoban::check_cell(int course,State state){
     int temp,cell1=1,cell2=1;
     switch(course){
-	case 1:temp=-width;
-	case 2:temp=width;
-	case 3:temp=-1;
-	case 4:temp=1;
+	case 1:temp=-width;break;
+	case 2:temp=width;break;
+	case 3:temp=-1;break;
+	case 4:temp=1;break;
 	}
     if(!not_a_wall[state.person+temp])cell1=0;
     else{
@@ -78,26 +75,20 @@ int Sokoban::check_cell(int course,State state){
     if(cell1==0 || (cell1==2 && cell2==2))return 0;
 }
 bool Sokoban::check_finish(State win){
-    bool flag=false;
     for(int i=0;i<7;++i){
-	for(int j=0;j<7;++j){
-	    if(win.boxes[i]==placeForBoxes[j]){
-		flag=true;
-		break;
-		}
-	    }
-	if(flag)flag=false;
-	else return 0;
+	if(win.boxes[i]!=placeForBoxes[i])return 0;
 	}
     return 1;   
 }
-bool Sokoban::push_box(int course,State state){
+bool Sokoban::push_box(int course,State & state){
     int temp;
+    unsigned char a;
+    bool flag=true;
     switch(course){
-	case 1:temp=-width;
-	case 2:temp=width;
-	case 3:temp=-1;
-	case 4:temp=1;
+	case 1:temp=-width;break;
+	case 2:temp=width;break;
+	case 3:temp=-1;break;
+	case 4:temp=1;break;
 	}
     state.person+=temp;
     for(int i=0;i<7;++i){
@@ -106,10 +97,21 @@ bool Sokoban::push_box(int course,State state){
 	    break;
 	    }
 	}
+    while(flag){
+	flag=false;
+    	for(int i=0;i<6;++i){
+	    if((state.boxes[i]>state.boxes[i+1]) && state.boxes[i+1]!=0){
+		a=state.boxes[i+1];
+	 	state.boxes[i+1]=state.boxes[i];
+		state.boxes[i]=a;
+		flag=true;
+		}
+	    }
+	}
     return check_finish(state);
 
 }
-int Sokoban::create_state(int course,State state){
+int Sokoban::create_state(int course,State & state){
     if(check_cell(course,state)==0)return 0;
     if(check_cell(course,state)==1){
 	switch(course){
@@ -138,7 +140,7 @@ State Sokoban::find_way(){
 		    cur_states.push_back(ob);
 		    }
 		if(temp==2){
-		    ways[ob]=last_states[i];
+		    if(ways.find(ob)==ways.end())ways[ob]=last_states[i];
 		    return ob;
 		    }
 		}
@@ -154,10 +156,10 @@ void Sokoban::print(State state){
 	else str[i]=' ';
     	}
     for(int i=0;i<7;++i){
-	str[placeForBoxes[i]]='X';
+	if(placeForBoxes[i]!=0)str[placeForBoxes[i]]='X';
 	}
     for(int i=0;i<7;++i){
-	str[state.boxes[i]]='@';
+	if(state.boxes[i]!=0)str[state.boxes[i]]='@';
 	}
     str[state.person]='P';
     for(int i=0;i<not_a_wall.size();++i){
@@ -167,11 +169,13 @@ void Sokoban::print(State state){
 }
 void Sokoban::work(){
     State temp;
+    int i=0;
     temp=find_way();
-    while(true){
+    while(i<9){
 	win_way.push(temp);
-	if(ways.find(temp)!=ways.end())temp=ways[temp];
-	else break;
+	if(temp==start)break;
+	else temp=ways[temp];
+	++i;
 	}
     while(win_way.size()!=0){
 	print(win_way.top());

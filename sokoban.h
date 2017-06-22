@@ -12,8 +12,9 @@ class State{
     unsigned char boxes[7];
     unsigned char person;
     State();
+    State(const State& state);
     State& operator = (const State& state);
-    friend bool operator < (State st1,State st2);
+    friend bool operator < (const State & st1,const State & st2);
     friend Sokoban;
 };
 class Sokoban{

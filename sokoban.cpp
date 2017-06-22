@@ -25,12 +25,23 @@ State::State(){
     person=0;
     for(int i=0;i<7;++i)boxes[i]=0;
 }
+State::State(const State& state){
+    person=state.person;
+    for(int i=0;i<7;++i)boxes[i]=state.boxes[i];
+}
 bool operator ==(State state1,State state2){
     if(state1.person!=state2.person)return 0;
     for(int i=0;i<7;++i){
 	if(state1.boxes[i]!=state2.boxes[i])return 0;
 	}
     return 1;
+}
+bool operator < (const State & st1,const State & st2) {
+    for(int i=0;i<7;++i){
+	if(st1.boxes[i]<st2.boxes[i])return true;
+	}
+    if(st1.person<st2.person)return true;
+    return false;
 }
 State& State:: operator = (const State& state){
         if (this == &state) {
@@ -39,13 +50,6 @@ State& State:: operator = (const State& state){
 	for(int i=0;i<7;++i)boxes[i]=state.boxes[i];	
     	person=state.person;
         return *this;
-}
-bool operator < (State  st1,State st2){
-    for(int i=0;i<7;++i){
- 	if(st1.boxes[i]>=st2.boxes[i])return false;
-	}
-    if(st1.person>=st2.person)return false;
-    return true;
 }
 int Sokoban::check_cell(int course,State state){
     int temp,cell1=1,cell2=1;
@@ -129,7 +133,7 @@ int Sokoban::create_state(int course,State & state){
 }
 State Sokoban::find_way(){
     State ob;
-    int temp;
+    int temp,r=0;
     while(true){
     	for(int i=0;i<last_states.size();++i){
 	    for(int j=1;j<5;++j){
@@ -146,7 +150,7 @@ State Sokoban::find_way(){
 		}
 	    }
 	last_states=cur_states;
-        cur_states.clear();
+        cur_states.clear();++r;
 	}
 }
 void Sokoban::print(State state){
@@ -170,7 +174,7 @@ void Sokoban::print(State state){
 void Sokoban::work(){
     State temp;
     int i=0;
-    temp=find_way();
+    temp=find_way();cout<<ways.size()<<endl;
     while(i<9){
 	win_way.push(temp);
 	if(temp==start)break;
